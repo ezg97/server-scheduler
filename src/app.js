@@ -5,6 +5,7 @@ const morgan = require('morgan')
 const cors = require('cors')
 const helmet = require('helmet')
 const { NODE_ENV } = require('./config');
+const { PORT, DB_URL } = require('./config')
 const scheduleRouter = require('./schedule/schedule-router');
 
 //  --- middleware ---
@@ -44,7 +45,7 @@ app.use(scheduleRouter);
 app.use((error, req, res, next) => {
     let response
     if (NODE_ENV === 'production') {
-      response = { error: { message: 'server error' }}
+      response = { error: { message: `server error ${PORT}` }}
     } else {
       response = { error }
     }
