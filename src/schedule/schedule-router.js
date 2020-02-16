@@ -6,6 +6,9 @@ const ScheduleService = require('./schedule-service')
 const scheduleRouter = express.Router()
 const jsonParser = express.json()
 
+const logger = require('../logger')
+
+
 //sanitize the schedule table
 const serializeSchedule = schedule => ({
   id: schedule.id,
@@ -77,6 +80,13 @@ const serializeOperation = operation => ({
     }
   }
   
+  function isEmpty(obj){
+    for(let key in obj){
+        if(obj.hasOwnProperty(key))
+            return false
+    }
+    return true
+}
 
 /*
  ------------ MASS GRAB OF DATA
@@ -85,7 +95,7 @@ scheduleRouter
   .route('/all')
   /* -------------------
 
-    G E T: get all info from a table
+    G E T /all 
 
      ------------------- */
   .get((req, res, next) => {
@@ -105,20 +115,24 @@ scheduleRouter
   })
   /* -------------------
 
-    P O S T: ADD NEW ROW
+    P O S T /all 
 
      ------------------- */
   .post(jsonParser, (req, res, next) => {
 
     const data = req.body;
     const table = req.app.get('table');
+    console.log('req body',req.body)
+    if(isEmpty(req.body)){
+      logger.error(`Empty request body`);
+      return res.status(400).send(`Empty request body`);
+    }
 
     for (const [key, value] of Object.entries(data))
-      if (value == null)
-        return res.status(400).json({
-          error: { message: `Missing '${key}' in request body` }
-        })
-
+      if (value == null){
+        logger.error(`Missing '${key}' in request body`);
+        return res.status(400).send(`Missing '${key}' in request body`);
+      }
     ScheduleService.insertData(
       req.app.get('db'),
       table,
@@ -154,7 +168,7 @@ scheduleRouter
       .then(data => {
         if (!data) {
           return res.status(404).json({
-            error: { message: `data doesn't exist` }
+            error: { message: `Data Not Found` }
           })
         }
         //Save the response from the request to "res.data"
@@ -165,7 +179,7 @@ scheduleRouter
   })
   /* -------------------
 
-    G E T: get row by ID
+    G E T /:data_id
 
      ------------------- */
   .get((req, res, next) => {
@@ -178,7 +192,7 @@ scheduleRouter
   })
   /* -------------------
 
-    D E L E T E: delete row by id
+    D E L E T E /:data_id
 
      ------------------- */
   .delete((req, res, next) => {
@@ -188,18 +202,22 @@ scheduleRouter
       req.params.data_id
     )
       .then(numRowsAffected => {
+        logger.info(`${req.app.get('table')} with id ${req.params.data_id} deleted.`)
         res.status(204).end()
       })
       .catch(next)
   })
   /* -------------------
 
-    P A T C H: update row by id
+    P A T C H /:data_id
 
      ------------------- */
   .patch(jsonParser, (req, res, next) => {
     //const { title, content, style } = req.body
+    console.log('PATCH CALLED')
     const dataToUpdate = req.body; //{ title, content, style }
+
+    console.log('PARAM: ', dataToUpdate)
 
     const numberOfValues = Object.values(dataToUpdate).filter(Boolean).length
     if (numberOfValues === 0)
@@ -208,6 +226,9 @@ scheduleRouter
           message: `Request body must content either 'title', 'style' or 'content'`
         }
       })
+
+    console.log('BOUT TO CALL UPDATE: ', dataToUpdate, '  -----FOR THIS ID: ',req.params.data_id)
+
 
     ScheduleService.updateData(
       req.app.get('db'),
@@ -252,7 +273,7 @@ scheduleRouter
 })
 /* -------------------
 
-  G E T: get row by BUSINESS_ID
+  G E T /business/:business_id
 
    ------------------- */
 .get((req, res, next) => {
@@ -270,7 +291,7 @@ scheduleRouter
 })
 /* -------------------
 
-    D E L E T E: delete row by BUSINESS_ID
+    D E L E T E /business/:business_id
 
      ------------------- */
 .delete((req, res, next) => {
