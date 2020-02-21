@@ -2,6 +2,7 @@ const path = require('path')
 const express = require('express')
 const xss = require('xss')
 const ScheduleService = require('./schedule-service')
+const { requireAuth } = require('../middleware/jwt-auth')
 
 const scheduleRouter = express.Router()
 const jsonParser = express.json()
@@ -93,6 +94,7 @@ const serializeOperation = operation => ({
  */
 scheduleRouter
   .route('/all')
+  .all(requireAuth)
   /* -------------------
 
     G E T /all 
@@ -155,6 +157,7 @@ scheduleRouter
  */
 scheduleRouter
   .route('/:data_id')
+  .all(requireAuth)
   /* -------------------
     Requesting data by ID: save to "res.data" for any 
       endpoints to use
@@ -249,6 +252,7 @@ scheduleRouter
  */
 scheduleRouter
 .route('/business/:business_id')
+.all(requireAuth)
 /* -------------------
   Requesting data by business_ID: save to "res.data" for any 
     endpoints to use
