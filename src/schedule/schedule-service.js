@@ -12,10 +12,10 @@ const scheduleService = {
         })
     },
     getById(knex, table, id) {
-      return knex.from(table).select('*').where('id', id).orderBy('id').first()
+      return knex.from(table).select('*').where('id', id)//.orderBy('id').first()
     },
     getByBusinessId(knex, table, business_id) {
-      return knex.from(table).select('*').where('business_id', business_id).orderBy('business_id')
+      return knex.from(table).select('*').where('business_id', business_id).orderBy('id','asc')
     },
     getByAny(knex, table, anyColumn, id) {
         return knex.from(table).select('*').where(anyColumn, id).first()

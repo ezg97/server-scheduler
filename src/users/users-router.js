@@ -22,17 +22,14 @@ usersRouter
     if (passwordError)
       return res.status(400).json({ error: passwordError })
 
-    console.log('bout to check if username exists: ',user_name)
     UsersService.hasUserWithUserName(
       req.app.get('db'),
       user_name
     )
       .then(hasUserWithUserName => {
-        console.log("Done checking: ", hasUserWithUserName)
         if (hasUserWithUserName)
           return res.status(400).json({ error: `Username already taken` })
 
-        console.log("IT does NOT exist")
         return UsersService.hashPassword(password)
           .then(hashedPassword => {
             const newUser = {
@@ -42,13 +39,11 @@ usersRouter
               nnickname,
               date_created: 'now()',*/
             }
-            console.log('password hashed: ', newUser)
             return UsersService.insertUser(
               req.app.get('db'),
               newUser
             )
               .then(user => {
-                  console.log("success")
                 res
                   .status(201)
                   .location(path.posix.join(req.originalUrl, `/${user.id}`))

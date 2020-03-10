@@ -32,7 +32,6 @@ app.use(function tableHeader(req, res, next){
   const table = req.get('table');
   
   console.log('started')
-  console.log('table',table);
   
   app.set('table', table);
   

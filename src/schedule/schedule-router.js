@@ -1,4 +1,4 @@
-const path = require('path')
+ const path = require('path')
 const express = require('express')
 const xss = require('xss')
 const ScheduleService = require('./schedule-service')
@@ -35,7 +35,8 @@ const serializeEmployee = employee => ({
 const serializeSHR = shr => ({
     id: shr.id,
     business_id: shr.business_id,
-    shift_time: xss(shr.shift_time),
+    shift_time: shr.shift_time,
+    midday: xss(shr.midday),
     monday: shr.monday,
     tuesday: shr.tuesday,
     wednesday: shr.wednesday,
@@ -61,19 +62,16 @@ const serializeOperation = operation => ({
   });
 
   function chooseSerialize(table){
-    console.log('\nSERIALIZE FUNCTION IS EXECUTING\n');
     if(table==='schedule'){
         return serializeSchedule; 
     }
     else if (table==='employee'){
-        console.log('EMPLOYEE CHOSEN');
         return serializeEmployee;
     }
     else if(table==='shr'){
         return serializeSHR;
     }
     else if(table==='business'){
-        console.log('\nbusiness HAS BEEN CHOSEN\n')
         return serializeBusiness;
     }
     else if(table==='operation'){
@@ -111,6 +109,9 @@ scheduleRouter
 
           //call a function that will decide which method to iterate for serialization
           const serializeFunction = chooseSerialize(table);
+
+          //The response is list of object(s). Calling the serialize function will cause it to select
+          // the object that is being iterated.
           res.json(response.map( serializeFunction ));        
       })
       .catch(next)
@@ -124,7 +125,6 @@ scheduleRouter
 
     const data = req.body;
     const table = req.app.get('table');
-    console.log('req body',req.body)
     if(isEmpty(req.body)){
       logger.error(`Empty request body`);
       return res.status(400).send(`Empty request body`);
@@ -163,19 +163,20 @@ scheduleRouter
       endpoints to use
      ------------------- */
   .all((req, res, next) => {
+    
     ScheduleService.getById(
       req.app.get('db'),
       req.app.get('table'),
       req.params.data_id
     )
       .then(data => {
-        if (!data) {
+        if (!data || data.length < 1) {
           return res.status(404).json({
             error: { message: `Data Not Found` }
-          })
+          });
         }
         //Save the response from the request to "res.data"
-        res.data = data
+        res.data = data;
         next()
       })
       .catch(next)
@@ -189,9 +190,11 @@ scheduleRouter
     //SAVE TABLE
     const table = req.app.get('table');
     // choose which function needs to be called so the
-    // data can be serialized
+    // data can be serialized 
+   
     const serializeFunction = chooseSerialize(table);
-    res.json(serializeFunction(res.data))
+    
+    res.json( res.data.map( serializeFunction ) )
   })
   /* -------------------
 
@@ -217,10 +220,7 @@ scheduleRouter
      ------------------- */
   .patch(jsonParser, (req, res, next) => {
     //const { title, content, style } = req.body
-    console.log('PATCH CALLED')
     const dataToUpdate = req.body; //{ title, content, style }
-
-    console.log('PARAM: ', dataToUpdate)
 
     const numberOfValues = Object.values(dataToUpdate).filter(Boolean).length
     if (numberOfValues === 0)
@@ -229,9 +229,6 @@ scheduleRouter
           message: `Request body must content either 'title', 'style' or 'content'`
         }
       })
-
-    console.log('BOUT TO CALL UPDATE: ', dataToUpdate, '  -----FOR THIS ID: ',req.params.data_id)
-
 
     ScheduleService.updateData(
       req.app.get('db'),
@@ -264,9 +261,9 @@ scheduleRouter
     req.params.business_id
   )
     .then(data => {
-      if (!data) {
+      if (!data || data.length < 1) {
         return res.status(404).json({
-          error: { message: `data doesn't exist` }
+          error: { message: `Data Not Found` }
         })
       }
       //Save the response from the request to "res.data"
@@ -285,7 +282,6 @@ scheduleRouter
   const table = req.app.get('table');
   // choose which function needs to be called so the
   // data can be serialized
-  console.log(res.data)
   const serializeFunction = chooseSerialize(table);
   //MUST map through the list and serialize each object and return
   // the serialized object to "res.json()"
